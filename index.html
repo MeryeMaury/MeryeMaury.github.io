@@ -70,6 +70,28 @@ section.content h2{font-size:clamp(49px,7vw,86px);line-height:1.05;margin:16px a
 .feudo-gallery figure:hover img{transform:scale(1.035)}
 .feudo-credit{font-size:11px;color:#786a6e;margin:12px auto 18px}
 @media(max-width:620px){.feudo-gallery{grid-template-columns:1fr 1fr;gap:8px}.feudo-gallery figure:first-child{grid-column:span 2;grid-row:auto}.feudo-gallery figure:first-child img{min-height:240px}.feudo-gallery img{min-height:145px}}
+
+/* Lista nozze — editorial gift card */
+.gift-section{position:relative;overflow:hidden;background:linear-gradient(160deg,#f8f3ef,#f1e5e0)!important}
+.gift-section::before,.gift-section::after{content:'✧';position:absolute;color:#c9a5a0;font:normal 115px 'Italiana',serif;opacity:.35;pointer-events:none}
+.gift-section::before{left:5%;top:12%}.gift-section::after{right:6%;bottom:10%}
+.gift-intro{max-width:670px!important;margin:0 auto 38px!important}
+.gift-card{position:relative;max-width:660px!important;margin:0 auto!important;padding:clamp(34px,6vw,72px) clamp(22px,5vw,60px);background:#fffcf8;border:1px solid #d9bdb5;box-shadow:0 20px 65px #6d4d4820;text-align:center}
+.gift-card::before{content:'';position:absolute;inset:9px;border:1px solid #eee0da;pointer-events:none}
+.gift-ornament{font-size:16px;letter-spacing:.6em;color:#b78581}.gift-ornament span{font-size:29px;vertical-align:middle;letter-spacing:0}
+.gift-overline{font-size:10px;letter-spacing:.3em;color:#956a65;margin:26px 0 15px}
+.gift-card h3{font:400 clamp(33px,5vw,50px)/1.2 'Italiana',serif;color:#704d56;margin:0 0 18px}
+.gift-copy{font-size:13px;line-height:1.9;color:#766762;max-width:420px;margin:0 auto}
+.gift-rule{width:70px;height:1px;background:#cba7a1;margin:32px auto}
+.gift-label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#95736e;margin:22px 0 7px}
+.gift-value{font-size:15px;color:#513f40;margin:0}.gift-demo{font-size:10px;color:#9c8b87}
+.gift-iban{padding:16px 10px;border:1px solid #e5d4cd;background:#faf4f0;letter-spacing:.16em;font-size:clamp(12px,2vw,15px);font-weight:600;color:#846c69;overflow-wrap:anywhere}
+.gift-copy-btn{display:inline-block;margin-top:18px;border:0;background:#74515b;color:white;padding:13px 28px;letter-spacing:.12em;text-transform:uppercase;font-size:11px}
+.gift-copy-btn:disabled{opacity:.6;cursor:not-allowed}
+.gift-hint{font-size:11px;color:#95817c;margin:12px 0 0}
+.gift-signature{margin-top:36px;color:#92766f;font-size:12px}.gift-signature em{display:block;font:italic 30px 'Italiana',serif;color:#704d56;margin-top:8px}
+.gift-footnote{font:italic 16px/1.7 Georgia,serif;color:#7e6665;margin:25px auto 0!important}
+@media(max-width:600px){.gift-section::before,.gift-section::after{display:none}.gift-card{padding:40px 20px}.gift-demo{display:block;margin-top:6px}}
 </style>
 <script async="" defer="" src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 <style>
@@ -166,7 +188,27 @@ body{background:var(--cream);color:var(--ink)}
 <section class="content" id="cerimonia"><div class="editorial-venue-grid"><div class="editorial-ceremony-photo"><img alt="Chiesa di San Giovanni Battista a Catanzaro" class="venue-photo" loading="lazy" src="https://commons.wikimedia.org/wiki/Special:Redirect/file/Chiesa_di_San_Giovanni_Battista_%28Catanzaro%29.jpg?width=960"/><p class="venue-photo-credit">Foto: Nicholas Gemini / Wikimedia Commons · <a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="noopener noreferrer" target="_blank">CC BY-SA 4.0</a> · immagine adattata al riquadro</p></div><div class="editorial-venue-details"><p class="eyebrow">LA CERIMONIA</p><h2>Il nostro sì</h2><p class="editorial-lead">Un momento che porteremo nel cuore.</p><h3>Parrocchia di San Giovanni Battista</h3><p class="section-text">Qui ci scambieremo il nostro sì.</p><a class="venue-link" href="https://share.google/x26X5oDMtkwtkxe29" rel="noopener noreferrer" target="_blank">Come arrivare · Google Maps ↗</a></div></div></section>
 <section class="content" id="ricevimento"><div class="editorial-reception-grid"><div class="editorial-reception-details"><p class="eyebrow">IL RICEVIMENTO</p><h2>Tenuta Il Feudo</h2><p class="editorial-lead">Una festa da ricordare, insieme a voi.</p><p class="section-text">Contrada Feudo · Curinga (CZ)<br/>Vi aspettiamo per festeggiare insieme!</p><a class="venue-link" href="https://share.google/qh0mmcIodje1SjjGy" rel="noopener noreferrer" target="_blank">Come arrivare · Google Maps ↗</a></div><div class="editorial-reception-photo"><figure><img alt="Tenuta Il Feudo: piscina e tavoli del ricevimento all'aperto" loading="lazy" src="https://ilfeudoevents.it/wp-content/uploads/2025/10/DS2_1926.jpg"/></figure></div></div><div class="editorial-reception-strip"><figure><img alt="Tenuta Il Feudo: sala del ricevimento allestita" loading="lazy" src="https://ilfeudoevents.it/wp-content/uploads/2025/06/DS2_1912.jpg"/></figure><figure><img alt="Tenuta Il Feudo: area lounge affacciata sulla piscina" loading="lazy" src="https://ilfeudoevents.it/wp-content/uploads/2025/10/DS2_1927.jpg"/></figure></div><p class="feudo-credit">Fotografie: <a href="https://ilfeudoevents.it/" rel="noopener noreferrer" target="_blank">Tenuta Il Feudo — sito ufficiale</a>.</p></section>
 <section class="content" id="rsvp"><div class="eyebrow">CONFERMA LA TUA PARTECIPAZIONE</div><h2>RSVP</h2><div class="divider"></div><p class="section-text">Confermate la vostra presenza per il 6 agosto 2027. Un solo modulo per la vostra coppia o famiglia ♡</p><div class="tile"><form class="rsvp-form" id="rsvpForm"><label for="rsvpFamily">Famiglia o referente *</label><input id="rsvpFamily" maxlength="150" placeholder="Es. Famiglia Rossi o Mario Rossi" required=""/><p class="rsvp-hint">La conferma resta collegata a questo accesso sul dispositivo. In seguito potremo aggiungere il recupero da altri dispositivi.</p><label>Parteciperete? *</label><div class="rsvp-choice"><label><input checked="" name="rsvpAttending" type="radio" value="yes"/> Sì, ci saremo!</label><label><input name="rsvpAttending" type="radio" value="no"/> Non potremo esserci</label></div><div id="rsvpAttendees"><p class="rsvp-hint">Inserite ogni partecipante, anche i bambini. Le esigenze alimentari sono facoltative e servono soltanto all'organizzazione del ricevimento.</p><div id="rsvpPeople"></div><button class="rsvp-add" id="rsvpAdd" type="button">+ Aggiungi partecipante</button></div><label for="rsvpMessage">Un messaggio per gli sposi (facoltativo)</label><textarea id="rsvpMessage" maxlength="1000" placeholder="Un pensiero per Maurizio e Mariangela..." rows="3"></textarea><p class="rsvp-hint">Le esigenze alimentari saranno utilizzate per organizzare il menù. Potrete modificare la conferma dallo stesso dispositivo.</p><button class="primary" id="rsvpSubmit" type="submit">Invia la conferma ♡</button><p aria-live="polite" class="rsvp-status" id="rsvpStatus" role="status"></p></form><div aria-live="polite" class="rsvp-thanks hidden" id="rsvpThanks" role="status"><div class="thanks-symbol">♡</div><div class="eyebrow">Maurizio &amp; Mariangela · 6 agosto 2027</div><h3>Grazie per la conferma!</h3><p id="rsvpThanksText">La vostra risposta è stata registrata. Non vediamo l’ora di condividere con voi questo giorno speciale.</p><button class="thanks-edit" id="rsvpEdit" type="button">Modifica la tua risposta</button></div></div></section>
-<section class="content" id="regalo"><div class="eyebrow">Con affetto</div><h2>Lista nozze</h2><div class="divider"></div><p class="section-text">Il regalo più bello sarà avervi con noi. Se desiderate farci un pensiero, aggiungeremo qui le informazioni che sceglieremo di condividere.</p></section>
+<section class="content gift-section" id="regalo">
+  <div class="eyebrow">Un pensiero per noi</div>
+  <h2>Il regalo più bello siete voi</h2>
+  <div class="divider"></div>
+  <p class="section-text gift-intro">Condividere con voi il nostro giorno speciale è già un dono immenso.<br>Se desiderate regalarci un piccolo contributo per i sogni che realizzeremo insieme, qui trovate tutte le informazioni.</p>
+  <div class="gift-card">
+    <div class="gift-ornament" aria-hidden="true">✦ <span>♡</span> ✦</div>
+    <p class="gift-overline">IL NOSTRO PROSSIMO CAPITOLO</p>
+    <h3>Un sogno da costruire insieme</h3>
+    <p class="gift-copy">Ogni vostro pensiero diventerà un ricordo prezioso del nostro viaggio insieme.</p>
+    <div class="gift-rule"></div>
+    <p class="gift-label">Intestatari</p>
+    <p class="gift-value">Maurizio &amp; Mariangela <span class="gift-demo">· testo dimostrativo</span></p>
+    <p class="gift-label">IBAN</p>
+    <div class="gift-iban" aria-label="IBAN non ancora inserito">IBAN DA INSERIRE</div>
+    <button class="gift-copy-btn" type="button" disabled title="Sarà attivo quando inseriremo l'IBAN">Copia IBAN <span aria-hidden="true">↗</span></button>
+    <p class="gift-hint">Il pulsante sarà attivo quando inseriremo l'IBAN definitivo.</p>
+    <div class="gift-signature">Con amore, <em>M &amp; M</em></div>
+  </div>
+  <p class="gift-footnote">La vostra presenza resta, per noi, il dono più importante. ♡</p>
+</section>
 <section class="content" id="foto"><div class="eyebrow">I nostri ricordi</div><h2>L'album del matrimonio</h2><div class="divider"></div><p class="section-text">Condividete i vostri scatti con tutti gli invitati! Potete caricare fino a 10 fotografie per volta, massimo 15 MB ciascuna.</p><div class="tile"><label for="photoInput"><strong>Carica le tue fotografie</strong></label><input accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" class="file" id="photoInput" multiple="" type="file"/><button class="primary" id="uploadBtn">Carica foto</button><p class="status" id="uploadStatus" role="status"></p><p class="muted">Le foto sono conservate in un archivio privato. Alcuni browser non mostrano l'anteprima dei file HEIC, ma sarà possibile scaricarli.</p></div><button class="primary" id="refreshBtn">Aggiorna l'album</button><div class="gallery" id="gallery"></div><p class="muted" id="galleryStatus" role="status"></p></section><footer class="footer">Maurizio &amp; Mariangela · 06.08.2027 ♡</footer></div>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
