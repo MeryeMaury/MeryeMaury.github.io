@@ -613,6 +613,20 @@ body{background:var(--cream);color:var(--ink)}
 #site.invitation-preparing{visibility:hidden!important;display:block!important;}
 @media(prefers-reduced-motion:reduce){#invitationOverlay .invitation-envelope-flap,#invitationOverlay .invitation-letter,#invitationOverlay .invitation-stage{transition:none!important}}
 </style>
+<style>
+/* Apertura definitiva: soltanto la busta, senza foglio né espansioni. */
+#invitationOverlay .invitation-letter,#invitationOverlay .invitation-fullscreen-sheet{display:none!important}
+#invitationOverlay .invitation-envelope{perspective:1100px!important;transform:none!important;margin-bottom:38px!important;transition:none!important}
+#invitationOverlay .invitation-envelope-back{z-index:0!important}
+#invitationOverlay .invitation-envelope-front{z-index:3!important}
+#invitationOverlay .invitation-envelope-flap{z-index:5!important;opacity:1!important;transform:rotateX(0deg)!important;transform-origin:50% 0!important;backface-visibility:visible!important;transition:transform 1.65s cubic-bezier(.22,.64,.18,1)!important}
+#invitationOverlay.invitation-opening .invitation-envelope-flap{transform:rotateX(180deg)!important;z-index:5!important;opacity:1!important}
+#invitationOverlay.invitation-opening .invitation-seal{opacity:0!important;transform:translate(-50%,-50%) scale(.75)!important;transition:opacity .35s ease,transform .35s ease!important}
+#invitationOverlay.invitation-opening .invitation-envelope{transform:none!important;margin-bottom:38px!important}
+#invitationOverlay.invitation-opening .invitation-stage{opacity:1!important;transform:none!important}
+#invitationOverlay.invitation-finished{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .8s ease,visibility .8s ease!important}
+@media(prefers-reduced-motion:reduce){#invitationOverlay .invitation-envelope-flap{transition:none!important}}
+</style>
 </head>
 <body>
 <div aria-label="Invito al matrimonio di Mariangela e Maurizio" aria-modal="true" class="hidden" id="invitationOverlay" role="dialog">
@@ -620,7 +634,6 @@ body{background:var(--cream);color:var(--ink)}
 <p class="invitation-eyebrow">UN INVITO SPECIALE PER TE</p>
 <div aria-hidden="true" class="invitation-envelope">
 <div class="invitation-envelope-back"></div>
-<div class="invitation-letter"><span class="invitation-letter-mark" aria-hidden="true">M<span>|</span>M</span><span class="invitation-letter-names">Mariangela &amp; Maurizio</span><span class="invitation-letter-date">06 · 08 · 2027</span><span class="invitation-letter-flower" aria-hidden="true">✧</span></div>
 <div class="invitation-envelope-front"></div><div class="invitation-envelope-flap"></div><div class="invitation-seal">M<span>|</span>M</div>
 </div>
 <h2 class="invitation-overlay-title">Il nostro giorno speciale</h2>
@@ -718,50 +731,26 @@ function finishInvitation(){
 $('invitationOpen').addEventListener('click',async()=>{
  const overlay=$('invitationOverlay');
  if(overlay.classList.contains('invitation-opening'))return;
- if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){finishInvitation();return;}
  const button=$('invitationOpen');button.disabled=true;
- const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
- const letter=overlay.querySelector('.invitation-letter');
  try{
-  // Il lembo si apre interamente PRIMA che il foglio inizi a salire.
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){finishInvitation();return;}
+  // Solo la busta: il lembo si apre lentamente, poi si entra nel sito.
   overlay.classList.add('invitation-opening');
-  await wait(1050);
-  overlay.classList.add('invitation-lifting');
-  await wait(1000);
-  // Il foglio che si vede uscire è lo stesso che riempirà lo schermo.
-  const rect=letter.getBoundingClientRect();
-  const sheet=document.createElement('div');
-  sheet.className='invitation-fullscreen-sheet';
-  sheet.setAttribute('aria-hidden','true');
-  sheet.innerHTML='<div class="sheet-mark">M<span>|</span>M</div><div class="sheet-names">Mariangela &amp; Maurizio</div><div class="sheet-date">06 · 08 · 2027</div>';
-  Object.assign(sheet.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});
-  document.body.appendChild(sheet);
-  letter.style.visibility='hidden';
-  overlay.classList.add('invitation-unfolding');
-  const cx=innerWidth/2-(rect.left+rect.width/2);
-  const cy=innerHeight/2-(rect.top+rect.height/2);
-  const sx=(innerWidth+8)/Math.max(rect.width,1),sy=(innerHeight+8)/Math.max(rect.height,1);
-  const grow=sheet.animate([
-   {transform:'translate(0px,0px) scale(1)',offset:0},
-   {transform:`translate(${cx*.24}px,${cy*.24}px) scale(1.08)`,offset:.24},
-   {transform:`translate(${cx}px,${cy}px) scale(${sx},${sy})`,offset:1}
-  ],{duration:1250,easing:'cubic-bezier(.2,.72,.18,1)',fill:'forwards'});
-  await grow.finished;
-  // Il sito è pronto dietro il foglio: nessun fotogramma del vecchio sfondo.
-  try{sessionStorage.setItem(invitationKey,'yes')}catch{}
+  await new Promise(resolve=>setTimeout(resolve,1750));
+  // Prepara la home dietro la busta prima della dissolvenza.
   showSite();
-  const fade=sheet.animate([{opacity:1},{opacity:0}],{duration:720,easing:'ease-in-out',fill:'forwards'});
-  await fade.finished;
-  sheet.remove();
- }catch(err){console.warn('Animazione invito:',err);finishInvitation();}
- finally{button.disabled=false;letter.style.visibility='';}
+  overlay.classList.add('invitation-finished');
+  await new Promise(resolve=>setTimeout(resolve,850));
+  finishInvitation();
+ }catch(err){console.warn('Apertura invito:',err);finishInvitation();}
+ finally{button.disabled=false;}
 });
 $('invitationSkip').addEventListener('click',finishInvitation);
 
 function showInvitation(){
  $('gate').classList.add('hidden');$('site').classList.add('hidden');
  const overlay=$('invitationOverlay');
- overlay.classList.remove('hidden','invitation-finished','invitation-opening');
+ overlay.classList.remove('hidden','invitation-finished','invitation-opening','invitation-lifting','invitation-unfolding');
  window.scrollTo(0,0);
  $('invitationOpen').focus();
 }
