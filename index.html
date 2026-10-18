@@ -302,6 +302,33 @@ body{background:var(--cream);color:var(--ink)}
 #programma .film-copy{flex:1}
 @media(max-width:600px){#programma .film-stop{display:block;min-height:0;padding:10px 12px 16px}#programma .film-frame{width:100%;height:125px;margin-bottom:14px;border-width:4px}#programma .film-copy h3{font-size:25px}}
 @media(prefers-reduced-motion:reduce){#programma .film-frame img{transition:none!important;transform:none!important}}
+</style><style>
+/* Cartolina Polaroid nella busta: animazione indipendente dal resto del sito */
+.invitation-stage{width:min(100%,560px)}
+.invitation-envelope{margin-bottom:42px;transition:margin-bottom .9s ease}
+.invitation-letter{height:96%;bottom:5%;justify-content:flex-end;padding:8px 10px 13px;gap:5px}
+.invitation-polaroid{width:76%;max-width:230px;background:#fffefb;padding:7px 7px 11px;border:1px solid #e9dcd4;box-shadow:0 8px 25px #65453b33;transform:rotate(-5deg) scale(.91);transition:transform 1.2s ease}
+.invitation-portrait{position:relative;height:105px;background:linear-gradient(135deg,#e7c4be,#fff4ed 65%,#d5aba4);overflow:hidden}
+.invitation-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:2}
+.portrait-fallback{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#a66e68;font:22px Georgia,serif}
+.portrait-fallback strong{font:35px 'Italiana',serif;color:#86534e}.portrait-fallback small{font-size:16px;letter-spacing:8px}
+.polaroid-caption{display:block;margin-top:7px;font:italic 15px 'Cormorant Garamond',Georgia,serif;color:#845b55}
+.invitation-letter .letter-names{font-size:clamp(16px,3vw,22px)}.invitation-letter .letter-date{font-size:9px}
+.invitation-discover{display:none;opacity:0}
+#invitationOverlay.invitation-opening .invitation-envelope{margin-bottom:130px}
+#invitationOverlay.invitation-opening .invitation-letter{transform:translateY(-78%)}
+#invitationOverlay.invitation-opening .invitation-polaroid{transform:rotate(3deg) scale(1)}
+#invitationOverlay.invitation-opening .invitation-discover{display:inline-block;animation:inviteFade .8s 2s both}
+#invitationOverlay.invitation-opening #invitationOpen{display:none}
+#invitationOverlay.invitation-opening .invitation-skip{opacity:0;pointer-events:none}
+.invitation-stage:before,.invitation-stage:after{content:'✿';position:absolute;top:24%;left:calc(50% - 215px);font:27px Georgia,serif;color:#c58f86;opacity:0;pointer-events:none}
+.invitation-stage:after{left:auto;right:calc(50% - 215px);top:30%;font-size:19px}
+#invitationOverlay.invitation-opening .invitation-stage:before{animation:invitePetal 3s 1s both}
+#invitationOverlay.invitation-opening .invitation-stage:after{animation:invitePetal 3s 1.3s both}
+@keyframes inviteFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes invitePetal{0%{opacity:0;transform:translateY(0) rotate(0)}25%{opacity:.8}100%{opacity:0;transform:translateY(90px) rotate(135deg)}}
+@media(max-width:540px){.invitation-portrait{height:75px}.invitation-polaroid{padding:5px 5px 7px}.polaroid-caption{font-size:12px}.invitation-letter .letter-names{font-size:16px}#invitationOverlay.invitation-opening .invitation-envelope{margin-bottom:98px}.invitation-stage:before{left:6%}.invitation-stage:after{right:6%}}
+@media(prefers-reduced-motion:reduce){#invitationOverlay.invitation-opening .invitation-discover{animation:none;opacity:1}#invitationOverlay.invitation-opening .invitation-stage:before,#invitationOverlay.invitation-opening .invitation-stage:after{animation:none}}
 </style></head>
 <body>
 <div id="invitationOverlay" class="hidden" role="dialog" aria-modal="true" aria-label="Invito al matrimonio di Mariangela e Maurizio">
@@ -309,12 +336,12 @@ body{background:var(--cream);color:var(--ink)}
     <p class="invitation-eyebrow">UN INVITO SPECIALE PER TE</p>
     <div class="invitation-envelope" aria-hidden="true">
       <div class="invitation-envelope-back"></div>
-      <div class="invitation-letter"><span class="letter-mark">M &amp; M</span><span class="letter-names">Mariangela &amp; Maurizio</span><span class="letter-date">6 AGOSTO 2027</span></div>
+      <div class="invitation-letter"><div class="invitation-polaroid"><div class="invitation-portrait"><img src="sposi-cartoon.png" alt="Mariangela e Maurizio in versione cartoon" onerror="this.style.display='none'"/><div class="portrait-fallback">♡<strong>M &amp; M</strong><small>✿ ❀ ✿</small></div></div><span class="polaroid-caption">La nostra storia continua…</span></div><span class="letter-names">Mariangela &amp; Maurizio</span><span class="letter-date">06 · 08 · 2027</span></div>
       <div class="invitation-envelope-front"></div><div class="invitation-envelope-flap"></div><div class="invitation-seal">M</div>
     </div>
     <h2 class="invitation-overlay-title">Il nostro giorno speciale</h2>
     <p class="invitation-overlay-subtitle">C'è qualcosa di bello che vogliamo condividere con te.</p>
-    <button id="invitationOpen" class="invitation-open" type="button">Apri il nostro invito ♡</button>
+    <button id="invitationOpen" class="invitation-open" type="button">Apri il nostro invito ♡</button><button id="invitationDiscover" class="invitation-open invitation-discover" type="button">Scopri il nostro giorno →</button>
     <button id="invitationSkip" class="invitation-skip" type="button">Vai direttamente al sito</button>
   </div>
 </div>
@@ -403,9 +430,10 @@ $('invitationOpen').addEventListener('click',()=>{
  const overlay=$('invitationOverlay');
  if(overlay.classList.contains('invitation-opening'))return;
  overlay.classList.add('invitation-opening');
- invitationTimeout=setTimeout(finishInvitation,2400);
+ // Aspetta il clic su «Scopri il nostro giorno»
 });
 $('invitationSkip').addEventListener('click',finishInvitation);
+$('invitationDiscover').addEventListener('click',finishInvitation);
 function showSite(){
  $('gate').classList.add('hidden');$('site').classList.remove('hidden');
  loadPhotos();loadRsvp();
