@@ -569,6 +569,24 @@ body{background:var(--cream);color:var(--ink)}
 @media(max-width:540px){#invitationOverlay .invitation-letter{height:85%!important}#invitationOverlay.invitation-opening .invitation-envelope{margin-bottom:30px!important}}
 @media(prefers-reduced-motion:reduce){#invitationOverlay .invitation-envelope,#invitationOverlay .invitation-letter,#invitationOverlay .invitation-envelope-flap{transition:none!important}}
 </style>
+<style>
+
+/* Apertura cinematografica: lembo visibile, foglio che si dispiega fino al sito */
+#invitationOverlay .invitation-envelope-flap{transform-origin:50% 0!important;transition:transform .85s cubic-bezier(.2,.65,.2,1),opacity .25s .65s!important;backface-visibility:visible!important}
+#invitationOverlay.invitation-opening .invitation-envelope-flap{transform:rotateX(178deg)!important;opacity:1!important;z-index:1!important}
+#invitationOverlay.invitation-opening .invitation-letter{transform:translateY(-47%)!important;transition:transform .85s cubic-bezier(.2,.7,.2,1) .4s!important}
+#invitationOverlay.invitation-opening .invitation-envelope{transform:none!important;filter:drop-shadow(0 19px 20px #74534c26)}
+#invitationOverlay.invitation-unfolding .invitation-stage{opacity:0;transition:opacity .35s ease}
+#invitationOverlay.invitation-unfolding{background:transparent;transition:none}
+.invitation-fullscreen-sheet{position:fixed;z-index:1002;box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:13px;overflow:hidden;background:linear-gradient(145deg,#fffdf9,#f9f0e9);border:1px solid #e7d2c8;box-shadow:0 18px 65px #6b4b4433;pointer-events:none;transform-origin:center center}
+.invitation-fullscreen-sheet .sheet-mark{font:400 clamp(43px,8vw,80px)/1 'Italiana',serif;letter-spacing:-.075em;color:#754c49;white-space:nowrap}
+.invitation-fullscreen-sheet .sheet-mark span{font-size:.55em;vertical-align:15%;margin:0 .16em;color:#b47d71}
+.invitation-fullscreen-sheet .sheet-names{font:400 clamp(15px,3vw,26px) 'Italiana',serif;color:#754c49;white-space:nowrap}
+.invitation-fullscreen-sheet .sheet-date{font:500 10px 'Manrope',sans-serif;letter-spacing:.2em;color:#9d756c;white-space:nowrap}
+#site.invitation-site-reveal{animation:invitationSiteReveal .65s ease both}
+@keyframes invitationSiteReveal{from{opacity:.3;filter:blur(5px)}to{opacity:1;filter:blur(0)}}
+@media(prefers-reduced-motion:reduce){#site.invitation-site-reveal{animation:none!important}}
+</style>
 </head>
 <body>
 <div aria-label="Invito al matrimonio di Mariangela e Maurizio" aria-modal="true" class="hidden" id="invitationOverlay" role="dialog">
@@ -666,19 +684,45 @@ function finishInvitation(){
  const overlay=$('invitationOverlay');
  if(invitationTimeout){clearTimeout(invitationTimeout);invitationTimeout=null}
  try{sessionStorage.setItem(invitationKey,'yes')}catch{}
- overlay.classList.add('invitation-finished');
- setTimeout(()=>{
-  overlay.classList.add('hidden');
-  overlay.classList.remove('invitation-finished','invitation-opening');
-  showSite();
- },450);
+ document.querySelector('.invitation-fullscreen-sheet')?.remove();
+ overlay.classList.add('hidden');
+ overlay.classList.remove('invitation-finished','invitation-opening','invitation-unfolding');
+ showSite();
 }
 $('invitationOpen').addEventListener('click',()=>{
  const overlay=$('invitationOverlay');
  if(overlay.classList.contains('invitation-opening'))return;
+ if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){finishInvitation();return}
  overlay.classList.add('invitation-opening');
+ const letter=overlay.querySelector('.invitation-letter');
  if(invitationTimeout)clearTimeout(invitationTimeout);
- invitationTimeout=setTimeout(finishInvitation,1650);
+ invitationTimeout=setTimeout(()=>{
+  invitationTimeout=null;
+  const rect=letter.getBoundingClientRect();
+  const sheet=document.createElement('div');
+  sheet.className='invitation-fullscreen-sheet';
+  sheet.setAttribute('aria-hidden','true');
+  sheet.innerHTML='<div class="sheet-mark">M<span>|</span>M</div><div class="sheet-names">Mariangela &amp; Maurizio</div><div class="sheet-date">06 · 08 · 2027</div>';
+  Object.assign(sheet.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});
+  document.body.appendChild(sheet);
+  overlay.classList.add('invitation-unfolding');
+  const deltaX=innerWidth/2-(rect.left+rect.width/2);
+  const deltaY=innerHeight/2-(rect.top+rect.height/2);
+  const scaleX=innerWidth/Math.max(rect.width,1);
+  const scaleY=innerHeight/Math.max(rect.height,1);
+  const anim=sheet.animate([
+   {transform:'translate(0,0) scale(1,1)',borderRadius:'2px',offset:0},
+   {transform:`translate(${deltaX*.25}px,${deltaY*.25}px) scale(1.06,1.15)`,borderRadius:'3px',offset:.3},
+   {transform:`translate(${deltaX}px,${deltaY}px) scale(${scaleX},${scaleY})`,borderRadius:'0',offset:1}
+  ],{duration:1250,easing:'cubic-bezier(.22,.7,.2,1)',fill:'forwards'});
+  const end=()=>{
+   try{sessionStorage.setItem(invitationKey,'yes')}catch{}
+   showSite();
+   $('site').classList.add('invitation-site-reveal');
+   sheet.animate([{opacity:1},{opacity:0}],{duration:600,fill:'forwards'}).finished.catch(()=>{}).then(()=>{sheet.remove();$('site').classList.remove('invitation-site-reveal')});
+  };
+  anim.finished.then(end).catch(finishInvitation);
+ },1120);
 });
 $('invitationSkip').addEventListener('click',finishInvitation);
 
