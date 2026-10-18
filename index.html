@@ -627,8 +627,18 @@ body{background:var(--cream);color:var(--ink)}
 #invitationOverlay.invitation-finished{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .8s ease,visibility .8s ease!important}
 @media(prefers-reduced-motion:reduce){#invitationOverlay .invitation-envelope-flap{transition:none!important}}
 </style>
+<style>
+/* Musica di sottofondo — controlli accessibili e discreti */
+#musicToggle{position:fixed;right:20px;bottom:20px;z-index:900;display:none;align-items:center;justify-content:center;gap:9px;border:1px solid #e3c8bf;border-radius:50px;background:#fffaf5f2;color:#784a46;padding:12px 16px;box-shadow:0 7px 25px #4d302b2a;font:600 12px 'Manrope',sans-serif;cursor:pointer;backdrop-filter:blur(10px)}
+#musicToggle.is-visible{display:flex}#musicToggle:focus-visible{outline:3px solid #9e6c63;outline-offset:3px}
+#musicToggle .music-icon{font-size:19px;line-height:1}#musicToggle[aria-pressed="false"]{opacity:.82}
+@media(max-width:600px){#musicToggle{right:12px;bottom:12px;padding:11px 13px}}
+</style>
 </head>
 <body>
+<audio id="weddingBackgroundMusic" preload="none" loop playsinline><source src="musica-matrimonio.mp3" type="audio/mpeg"/></audio>
+<button id="musicToggle" type="button" aria-label="Attiva la musica di sottofondo" aria-pressed="false" title="Musica di sottofondo"><span class="music-icon" aria-hidden="true">♫</span><span id="musicToggleText">Musica off</span></button>
+
 <div aria-label="Invito al matrimonio di Mariangela e Maurizio" aria-modal="true" class="hidden" id="invitationOverlay" role="dialog">
 <div class="invitation-stage">
 <p class="invitation-eyebrow">UN INVITO SPECIALE PER TE</p>
@@ -889,4 +899,43 @@ init();
   const blob=new Blob([event],{type:'text/calendar;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='Mariangela-e-Maurizio-6-agosto-2027.ics';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
  });
 })();
-</script></body></html>
+</script><script>
+
+/* La musica parte solo da un gesto dell'utente: click sull'apertura della busta. */
+const mmMusic=document.getElementById('weddingBackgroundMusic');
+const mmMusicButton=document.getElementById('musicToggle');
+const mmMusicText=document.getElementById('musicToggleText');
+const mmSaveVideo=document.getElementById('saveTheDateVideo');
+let mmMusicEnabled=false,mmMusicFade=null,mmMusicVolume=0;
+const MM_MUSIC_NORMAL=.23,MM_MUSIC_DUCK=.035;
+function mmMusicTarget(){return mmSaveVideo&&!mmSaveVideo.paused&&!mmSaveVideo.ended?MM_MUSIC_DUCK:MM_MUSIC_NORMAL}
+function mmFadeMusic(target,duration=900){
+ if(mmMusicFade)clearInterval(mmMusicFade);
+ const start=mmMusic.volume,steps=24;let step=0;
+ mmMusicFade=setInterval(()=>{step++;const t=Math.min(1,step/steps);mmMusic.volume=Math.max(0,Math.min(1,start+(target-start)*t));if(t===1){clearInterval(mmMusicFade);mmMusicFade=null;if(target===0&&!mmMusicEnabled)mmMusic.pause()}},Math.max(15,duration/steps));
+}
+function mmUpdateMusicButton(){
+ mmMusicButton.classList.toggle('is-visible',!document.getElementById('site').classList.contains('hidden'));
+ mmMusicButton.setAttribute('aria-pressed',String(mmMusicEnabled));
+ mmMusicButton.setAttribute('aria-label',mmMusicEnabled?'Metti in pausa la musica':'Attiva la musica di sottofondo');
+ mmMusicText.textContent=mmMusicEnabled?'Musica on':'Musica off';
+}
+function mmStartMusic(){
+ mmMusicEnabled=true;mmMusic.volume=0;mmUpdateMusicButton();
+ const attempt=mmMusic.play();
+ if(attempt&&attempt.then)attempt.then(()=>mmFadeMusic(mmMusicTarget(),1900)).catch(()=>{mmMusicEnabled=false;mmUpdateMusicButton()});
+}
+function mmStopMusic(){mmMusicEnabled=false;mmUpdateMusicButton();mmFadeMusic(0,450)}
+mmMusicButton.addEventListener('click',()=>{if(mmMusicEnabled)mmStopMusic();else mmStartMusic()});
+if(mmSaveVideo){
+ mmSaveVideo.addEventListener('play',()=>{if(mmMusicEnabled)mmFadeMusic(MM_MUSIC_DUCK,450)});
+ mmSaveVideo.addEventListener('pause',()=>{if(mmMusicEnabled)mmFadeMusic(MM_MUSIC_NORMAL,650)});
+ mmSaveVideo.addEventListener('ended',()=>{if(mmMusicEnabled)mmFadeMusic(MM_MUSIC_NORMAL,650)});
+}
+document.getElementById('invitationOpen').addEventListener('click',()=>{if(!mmMusicEnabled)mmStartMusic()});
+document.getElementById('invitationSkip').addEventListener('click',()=>{if(!mmMusicEnabled)mmStartMusic()});
+const mmMusicObserver=new MutationObserver(mmUpdateMusicButton);
+mmMusicObserver.observe(document.getElementById('site'),{attributes:true,attributeFilter:['class']});
+mmUpdateMusicButton();
+</script>
+</body></html>
