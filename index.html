@@ -133,6 +133,20 @@ section.content h2{font-size:clamp(49px,7vw,86px);line-height:1.05;margin:16px a
 .guestbook-note footer{font-size:.84rem;color:#8d6970}
 @media(max-width:700px){.guestbook-shell{grid-template-columns:1fr}.guestbook-form,.guestbook-wall{padding:19px}}
 
+
+/* RSVP — invito discreto dopo 7 secondi di navigazione, mai durante il video */
+#mmRsvpNudge{position:fixed;right:clamp(12px,3vw,34px);bottom:clamp(16px,3vw,32px);z-index:1005;width:min(365px,calc(100vw - 24px));padding:23px 23px 21px;border:1px solid #e5d4d0;border-radius:19px;background:linear-gradient(145deg,#fffdfa,#f5eae6);box-shadow:0 22px 65px #402a3440;color:#65474c;text-align:center;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(25px) scale(.97);transition:opacity .65s ease,transform .65s ease,visibility .65s}
+#mmRsvpNudge.mm-visible{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1)}
+#mmRsvpNudge .mm-nudge-close{position:absolute;right:10px;top:8px;border:0;background:transparent;color:#927b7d;font-size:24px;line-height:1;padding:6px 10px;cursor:pointer}
+#mmRsvpNudge .mm-nudge-mark{font-family:'Italiana',serif;font-size:33px;color:#76535b;line-height:1.1;margin:4px auto 6px}
+#mmRsvpNudge .mm-nudge-mark span{color:#b68d8a;margin:0 5px}
+#mmRsvpNudge .mm-nudge-eyebrow{font-size:9px;letter-spacing:.24em;color:#a17e84;text-transform:uppercase}
+#mmRsvpNudge h3{font:italic 400 34px/1.1 'Cormorant Garamond','Italiana',serif;color:#67484e;margin:12px 0}
+#mmRsvpNudge p{font-size:12px;line-height:1.8;color:#826e72;margin:0 0 16px}
+#mmRsvpNudge .mm-nudge-action{width:100%;background:#79565f;color:#fff;border:0;border-radius:30px;padding:13px 16px;font:600 12px 'Manrope',sans-serif;cursor:pointer}
+#mmRsvpNudge .mm-nudge-foot{display:block;font-size:10px;color:#987f84;margin-top:13px}
+@media(max-width:560px){#mmRsvpNudge{left:12px;right:12px;bottom:14px;width:auto;padding:19px 20px}#mmRsvpNudge h3{font-size:30px}}
+@media(prefers-reduced-motion:reduce){#mmRsvpNudge{transition:none}}
 </style>
 <script>
 /* Avvio indipendente della verifica: non attende Supabase o altri moduli. */
@@ -1025,5 +1039,57 @@ document.getElementById('invitationSkip').addEventListener('click',()=>{if(!mmMu
 const mmMusicObserver=new MutationObserver(mmUpdateMusicButton);
 mmMusicObserver.observe(document.getElementById('site'),{attributes:true,attributeFilter:['class']});
 mmUpdateMusicButton();
+</script>
+
+<aside id="mmRsvpNudge" role="region" aria-label="Invito a confermare la presenza" aria-hidden="true">
+ <button type="button" class="mm-nudge-close" id="mmRsvpNudgeClose" aria-label="Chiudi il promemoria">×</button>
+ <div class="mm-nudge-eyebrow">Mariangela &amp; Maurizio · 06.08.2027</div>
+ <div class="mm-nudge-mark" aria-hidden="true">M<span>|</span>M</div>
+ <h3>Ci sarai anche tu?</h3>
+ <p>Il nostro giorno sarà ancora più speciale con te. Facci sapere se festeggerai insieme a noi!</p>
+ <button type="button" class="mm-nudge-action" id="mmRsvpNudgeGo">Conferma la tua presenza &nbsp; ↗</button>
+ <span class="mm-nudge-foot">Potrai modificare la tua risposta anche in seguito ♡</span>
+</aside>
+<script>
+(()=>{
+ const site=document.getElementById('site');
+ const card=document.getElementById('mmRsvpNudge');
+ const video=document.getElementById('saveTheDateVideo');
+ const rsvp=document.getElementById('rsvp');
+ const thanks=document.getElementById('rsvpThanks');
+ const storageKey='mm-rsvp-nudge-dismissed-v1';
+ let dismissed=false;
+ try{dismissed=sessionStorage.getItem(storageKey)==='yes'}catch(_){}
+ let elapsed=0, last=performance.now(), shown=false;
+ const siteVisible=()=>site&&!site.classList.contains('hidden')&&document.getElementById('invitationOverlay')?.classList.contains('hidden');
+ // Il video muto in loop nella hero è uno sfondo: non blocca la notifica.
+ // Il video Save the Date con controlli blocca il timer finché è in riproduzione.
+ const videoPlaying=()=>video&&!video.paused&&!video.ended&&video.readyState>1;
+ const rsvpVisible=()=>{
+  if(!rsvp)return false;
+  const rect=rsvp.getBoundingClientRect();
+  return rect.top<innerHeight*.8&&rect.bottom>innerHeight*.2;
+ };
+ const alreadySubmitted=()=>thanks&&!thanks.classList.contains('hidden');
+ const hide=()=>{card.classList.remove('mm-visible');card.setAttribute('aria-hidden','true')};
+ const dismiss=()=>{dismissed=true;hide();try{sessionStorage.setItem(storageKey,'yes')}catch(_){}};
+ document.getElementById('mmRsvpNudgeClose').addEventListener('click',dismiss);
+ document.getElementById('mmRsvpNudgeGo').addEventListener('click',()=>{
+  dismiss();
+  rsvp?.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+ });
+ video?.addEventListener('play',hide);
+ document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden)hide()});
+ const observer=new MutationObserver(()=>{if(!siteVisible()||alreadySubmitted())hide()});
+ if(site)observer.observe(site,{attributes:true,attributeFilter:['class']});
+ if(thanks)observer.observe(thanks,{attributes:true,attributeFilter:['class']});
+ setInterval(()=>{
+  const now=performance.now(), delta=Math.min(500,now-last);last=now;
+  if(dismissed||shown)return;
+  if(!siteVisible()||document.hidden||videoPlaying()||alreadySubmitted()||rsvpVisible())return;
+  elapsed+=delta;
+  if(elapsed>=7000){shown=true;card.classList.add('mm-visible');card.setAttribute('aria-hidden','false')}
+ },250);
+})();
 </script>
 </body></html>
