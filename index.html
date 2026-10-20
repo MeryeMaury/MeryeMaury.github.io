@@ -650,6 +650,11 @@ body{background:var(--cream);color:var(--ink)}
 @media(max-width:600px){#musicToggle{right:12px;bottom:12px;padding:11px 13px}}
 </style>
 <style id="rsvp-email-styles">.rsvp-email-box{margin:22px 0;padding:20px;border:1px solid rgba(154,103,102,.25);border-radius:16px;background:rgba(255,247,245,.65)}.rsvp-email-box>label:first-child{display:block;margin-bottom:8px}.rsvp-email-box input[type=email]{width:100%;box-sizing:border-box}.rsvp-email-consent{display:flex;align-items:flex-start;gap:10px;margin-top:14px;font-size:.88rem;line-height:1.5}.rsvp-email-consent input{flex:none;margin-top:4px}</style>
+<style>
+/* Dimensione ridotta esclusivamente per il titolo della conferma */
+#site #rsvp h2{font-size:clamp(28px,4vw,48px);line-height:1.2;letter-spacing:-.015em;max-width:850px;margin-left:auto;margin-right:auto}
+@media(max-width:540px){#site #rsvp h2{font-size:clamp(27px,7vw,36px)}}
+</style>
 </head>
 <body>
 <audio id="weddingBackgroundMusic" preload="none" loop playsinline><source src="musica-matrimonio.mp3" type="audio/mpeg"/></audio>
