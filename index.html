@@ -938,4 +938,45 @@ const mmMusicObserver=new MutationObserver(mmUpdateMusicButton);
 mmMusicObserver.observe(document.getElementById('site'),{attributes:true,attributeFilter:['class']});
 mmUpdateMusicButton();
 </script>
+<style id="mm-action-feedback-style">
+.mm-action-pending{position:relative!important;cursor:progress!important;filter:brightness(.94);}
+.mm-action-pending::after{content:"";display:inline-block;width:13px;height:13px;margin-left:9px;vertical-align:-2px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:mm-action-spin .7s linear infinite}
+@keyframes mm-action-spin{to{transform:rotate(360deg)}}
+.mm-action-tap{filter:brightness(.89);transition:filter .12s}
+#mm-action-status{position:fixed;z-index:2147483647;bottom:max(16px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#172436;color:#fff;padding:10px 17px;border-radius:24px;box-shadow:0 7px 25px #0005;font:600 13px system-ui,sans-serif;pointer-events:none;display:none;align-items:center;gap:9px;white-space:nowrap;max-width:90vw}
+#mm-action-status.mm-show{display:flex}
+#mm-action-status .mm-wheel{height:15px;width:15px;border:2px solid #fff9;border-right-color:transparent;border-radius:50%;animation:mm-action-spin .7s linear infinite}
+@media(prefers-reduced-motion:reduce){.mm-action-pending::after,#mm-action-status .mm-wheel{animation-duration:1.8s}}
+</style>
+<script id="mm-action-feedback-script">
+(()=>{
+ const nativeFetch=window.fetch.bind(window);
+ let current=null,serial=0;
+ const status=document.createElement('div');status.id='mm-action-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.innerHTML='<span class="mm-wheel" aria-hidden="true"></span><span>Caricamento…</span>';
+ const mount=()=>{if(!status.isConnected)document.body.appendChild(status)};
+ function clear(a){if(!a||a.done)return;a.done=true;clearTimeout(a.delay);clearTimeout(a.limit);clearTimeout(a.settle);if(a.btn?.isConnected){a.btn.classList.remove('mm-action-pending','mm-action-tap');a.btn.removeAttribute('data-mm-loading')}if(current===a){current=null;status.classList.remove('mm-show')}}
+ function start(btn){if(!btn||btn.disabled||btn.getAttribute('aria-disabled')==='true')return;
+  if(current&&current.btn===btn&&!current.done)return;
+  const a={id:++serial,btn,pending:0,done:false,started:performance.now()};current=a;mount();btn.classList.add('mm-action-tap');
+  a.delay=setTimeout(()=>{if(a.done)return;btn.classList.add('mm-action-pending');btn.dataset.mmLoading='true';status.classList.add('mm-show')},220);
+  a.limit=setTimeout(()=>{if(!a.done){clear(a);status.querySelector('span:last-child').textContent='Connessione lenta: verifica il risultato';status.classList.add('mm-show');setTimeout(()=>{status.classList.remove('mm-show');status.querySelector('span:last-child').textContent='Caricamento…'},2500)}},18000);
+  // Lascia una finestra breve per l'avvio di operazioni asincrone.
+  a.settle=setTimeout(()=>{if(a.pending===0)clear(a)},900);
+ }
+ document.addEventListener('click',e=>{const btn=e.target.closest('button,input[type="submit"],input[type="button"],a[href]');if(!btn||btn.disabled)return;
+  // Link e azioni istantanee hanno solo conferma visiva, non un caricamento fittizio.
+  if(btn.matches('a[href]')){btn.classList.add('mm-action-tap');setTimeout(()=>btn.classList.remove('mm-action-tap'),250);return}
+  start(btn);
+ },true);
+ document.addEventListener('submit',e=>{const btn=e.submitter||e.target.querySelector('button[type="submit"],input[type="submit"]');if(btn&&(!current||current.btn!==btn))start(btn)},true);
+ window.fetch=function(...args){const a=current;
+  // Associa alla pressione solo le richieste iniziate subito dopo il tocco.
+  const tracked=a&&!a.done&&performance.now()-a.started<1800;
+  if(tracked){a.pending++;clearTimeout(a.settle)}
+  let promise;try{promise=nativeFetch(...args)}catch(err){if(tracked&&--a.pending===0)clear(a);throw err}
+  if(tracked)return promise.finally(()=>{a.pending--;if(a.pending===0){a.settle=setTimeout(()=>clear(a),320)}});
+  return promise;
+ };
+})();
+</script>
 </body></html>
