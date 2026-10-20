@@ -92,6 +92,30 @@ h1{font-size:clamp(19px,2.65vh,36px);line-height:1}
 .destination .names{width:100%!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(5,minmax(0,1fr))!important;align-items:center!important;justify-items:stretch!important;column-gap:2px!important;row-gap:0!important;padding:0!important;flex:1!important}
 .destination .names .guest,.destination .names .guest[data-side="left"],.destination .names .guest[data-side="right"]{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;padding:0 1px!important;margin:0!important;text-align:center!important;justify-self:stretch!important;align-self:center!important;font-family:Manrope,Arial,sans-serif!important;font-weight:800!important;font-size:clamp(12px,1.95vh,23px)!important;line-height:1.14!important;letter-spacing:-.025em!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 @media(max-aspect-ratio:13/10){.destination .names .guest,.destination .names .guest[data-side]{font-size:clamp(10px,1.45vh,18px)!important}}
+
+/* Allineamento centrato effettivo dei nomi, indipendente dalle regole precedenti */
+.destination .names{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(5,minmax(0,1fr))!important;justify-content:center!important;justify-items:center!important;align-items:center!important;place-content:center!important;column-gap:clamp(2px,.25vw,6px)!important;width:100%!important;margin-inline:auto!important}
+.destination .names > .guest,.destination .names > .guest[data-side="left"],.destination .names > .guest[data-side="right"]{box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;text-align-last:center!important;justify-self:center!important;align-self:center!important;width:100%!important;padding:0 2px!important;margin:0!important;font-size:clamp(12px,1.95vh,23px)!important;font-weight:800!important;line-height:1.16!important}
+
+/* Nomi completi: nessuna ellissi; ridimensionamento individuale in base allo spazio. */
+.destination .names > .guest,
+.destination .names > .guest[data-side="left"],
+.destination .names > .guest[data-side="right"]{
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+  line-height:1.08!important;
+  padding:0 1px!important;
+}
 </style></head><body><div class="shell"><header><div class="monogram">M | M</div><h1>Il nostro viaggio più bello</h1><div class="date">6 AGOSTO 2027</div><p class="intro">Ogni destinazione, un incontro speciale</p></header><main class="screen"><div class="grid" id="grid"></div><section class="welcome" id="welcome"><div class="welcome-inner"><div class="monogram">M | M</div><h2>La nostra storia continua…</h2><p>Il vostro posto sta per essere svelato</p></div></section><div aria-live="polite" class="spotlight hidden" id="spotlight"></div><div class="error" id="error" role="status"></div><div class="status" id="status"></div><div class="page-controls hidden" id="pageControls"><button aria-label="Pagina precedente" id="prevPage">‹</button><span id="pageCount">1 / 5</span><button aria-label="Pagina successiva" id="nextPage">›</button></div><div class="tools"><button id="fullscreen" type="button">⛶ Schermo intero</button></div></main></div>
 <script>
 const ENDPOINT='https://helhiadzfltxtfsehtoo.supabase.co/functions/v1/tableau-live';
@@ -102,7 +126,39 @@ const $=id=>document.getElementById(id);
 const guestKey=x=>x.id!=null?String(x.id):[x.full_name,x.table_id,x.seat_no].map(v=>String(v??'')).join('::');
 let data=null,busy=false,seen=new Set(),initialized=false,startedBefore=false,spotTimer=null;
 async function getState(){const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','apikey':APIKEY},body:JSON.stringify({action:'state',role:'projector'}),cache:'no-store'});const v=await r.json();if(!r.ok)throw Error(v.error||'Connessione non riuscita');return v;}
-function layout(){}
+function layout(){
+  // Riduce solo i nomi che non entrano: mai troncare o aggiungere puntini.
+  const canvas=layout.canvas||(layout.canvas=document.createElement('canvas'));
+  const ctx=canvas.getContext('2d');
+  document.querySelectorAll('.destination .names .guest').forEach(el=>{
+    const name=el.firstChild?.nodeValue||'';
+    const w=Math.max(1,el.clientWidth-3),h=Math.max(1,el.clientHeight-1);
+    if(!name||w<3||h<3)return;
+    const family=getComputedStyle(el).fontFamily;
+    const weight=getComputedStyle(el).fontWeight;
+    const max=Math.min(25,Math.max(12,h*.67));
+    let lo=5,hi=max;
+    const words=name.split(/\s+/);
+    const fits=size=>{
+      ctx.font=`${weight} ${size}px ${family}`;
+      const lines=[];let line='';
+      for(const word of words){
+        const trial=line?line+' '+word:word;
+        if(ctx.measureText(trial).width<=w){line=trial;continue}
+        if(line){lines.push(line);line=word}else{line=word}
+        // A single long word may need an even smaller size.
+        if(ctx.measureText(word).width>w)return false;
+      }
+      if(line)lines.push(line);
+      return lines.length*size*1.08<=h;
+    };
+    for(let i=0;i<13;i++){
+      const mid=(lo+hi)/2;
+      if(fits(mid))lo=mid;else hi=mid;
+    }
+    el.style.fontSize=lo.toFixed(2)+'px';
+  });
+}
 function buildCards(){const grid=$('grid');DEST.forEach((name,i)=>{const card=document.createElement('article');card.className='destination';card.dataset.index=i;const h=document.createElement('h2');h.textContent=name;const list=document.createElement('div');list.className='names';card.append(h,list);grid.append(card)});layout();}
 function sparkle(el){const layer=document.createElement('span');layer.className='spark';layer.setAttribute('aria-hidden','true');for(let i=0;i<4;i++){const star=document.createElement('i');star.textContent=i%2?'✧':'✦';layer.append(star)}el.append(layer);el.classList.add('enter');setTimeout(()=>{layer.remove();el.classList.remove('enter')},1550)}
 function spotlight(guest,tableName){const el=$('spotlight');el.replaceChildren();const name=document.createElement('strong');name.textContent=guest.full_name;const loc=document.createElement('span');loc.textContent=tableName;el.append(name,loc);el.classList.remove('hidden');clearTimeout(spotTimer);spotTimer=setTimeout(()=>el.classList.add('hidden'),4200)}
