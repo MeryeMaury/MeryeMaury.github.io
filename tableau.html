@@ -75,10 +75,11 @@ h1{font-size:clamp(19px,2.65vh,36px);line-height:1}
 .destination .art{display:none!important;}
 .destination h2{flex:none!important;margin:0 0 clamp(3px,.5vh,8px)!important;font-size:clamp(15px,1.5vw,28px)!important;line-height:1.08!important;border-bottom:1px solid #d8b9a8;padding-bottom:clamp(2px,.35vh,5px);}
 .destination .names{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:repeat(5,minmax(0,1fr))!important;align-items:center!important;justify-items:stretch!important;flex:1!important;min-height:0!important;gap:1px clamp(4px,.35vw,9px)!important;padding:0 2px 2px!important;}
-.destination .names .guest{font-size:clamp(11px,1.55vh,22px)!important;line-height:1.15!important;font-weight:700!important;letter-spacing:-.025em!important;white-space:nowrap!important;min-width:0!important;max-width:100%!important;}
-.destination .names .guest[data-side="left"]{text-align:left!important;padding-left:0!important;}
-.destination .names .guest[data-side="right"]{text-align:right!important;padding-right:0!important;}
-@media(max-aspect-ratio:13/10){.destination .names .guest{font-size:clamp(9px,1.25vh,17px)!important}}
+.destination .names .guest{font-size:clamp(13px,2.05vh,25px)!important;line-height:1.12!important;font-weight:700!important;letter-spacing:-.035em!important;white-space:nowrap!important;min-width:0!important;max-width:100%!important;text-align:center!important;justify-self:stretch!important;}
+.destination .names .guest[data-side="left"]{text-align:center!important;padding-left:0!important;}
+.destination .names .guest[data-side="right"]{text-align:center!important;padding-right:0!important;}
+@media(max-aspect-ratio:13/10){.destination .names .guest{font-size:clamp(11px,1.65vh,20px)!important}}
+@media(max-width:700px){.destination .names .guest{font-size:clamp(10px,1.4vh,16px)!important}}
 </style>
 </head><body><div class="shell"><header><div class="monogram">M | M</div><h1>Il nostro viaggio più bello</h1><div class="date">6 AGOSTO 2027</div><p class="intro">Ogni destinazione, un incontro speciale</p></header><main class="screen"><div class="grid" id="grid"></div><section class="welcome" id="welcome"><div class="welcome-inner"><div class="monogram">M | M</div><h2>La nostra storia continua…</h2><p>Il vostro posto sta per essere svelato</p></div></section><div aria-live="polite" class="spotlight hidden" id="spotlight"></div><div class="error" id="error" role="status"></div><div class="status" id="status"></div><div class="page-controls hidden" id="pageControls"><button aria-label="Pagina precedente" id="prevPage">‹</button><span id="pageCount">1 / 5</span><button aria-label="Pagina successiva" id="nextPage">›</button></div><div class="tools"><button id="fullscreen" type="button">⛶ Schermo intero</button></div></main></div>
 <script>
