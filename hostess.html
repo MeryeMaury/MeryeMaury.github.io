@@ -40,16 +40,17 @@ button.danger{background:#a84151;color:white}
 .quick-tabs button[data-filter="hidden"].active{background:#b37a22;color:#fff}
 .quick-tabs button[data-filter="revealed"].active{background:#18774e;color:#fff}
 @media(max-width:480px){.tablet-actions #searchButton{min-width:92px}.quick-tabs button{font-size:13px}}
+.mm-saving,.mm-saving:disabled{opacity:1!important;cursor:progress!important;filter:none!important;background:#256079!important;color:#fff!important}.loading-spinner{animation:mmspin .75s linear infinite!important}button{touch-action:manipulation}#msg:not(:empty){padding:8px 12px}
 </style></head><body><header><div class="logo">M | M</div><h1>Regia hostess</h1><div class="muted">Mariangela &amp; Maurizio · 6 agosto 2027</div></header><main class="wrap"><section class="card login" id="login"><h2>Accesso riservato</h2><p class="muted">Inserisci il codice del personale di accoglienza.</p><form id="access"><div class="row"><input autocomplete="off" class="grow" id="pass" placeholder="Codice di accesso" required="" type="password"/><button class="secondary" id="eye" type="button">Mostra</button></div><p><button style="width:100%" type="submit">Accedi</button></p></form></section><div class="error" id="msg" role="status"></div><section class="hidden" id="app"><a class="projector-link" href="tableau.html" rel="noopener noreferrer" target="_blank"><span aria-hidden="true" style="font-size:26px">📽️</span><span>APRI TABLEAU SUL PROIETTORE<small>Apri lo schermo di proiezione in una nuova scheda ↗</small></span></a><button aria-controls="directoryPanel" aria-expanded="false" class="directory-toggle" id="directoryToggle" type="button">📋 CONSULTA TABLEAU E PAROLE D’ORDINE <span aria-hidden="true">▾</span></button><section class="card directory-panel hidden" id="directoryPanel"><div class="directory-top"><h2>Elenco invitati e parole d’ordine</h2><button class="secondary" id="directoryClose" type="button">Chiudi</button></div><p class="muted">Consulta tutti gli invitati, i tavoli, i posti e le parole d’ordine in qualsiasi momento. Per ora ogni parola d’ordine è «DA CREARE».</p><input aria-label="Cerca nell’elenco completo" class="directory-search" id="directorySearch" placeholder="Cerca invitato, tavolo o parola d’ordine…" type="search"/><p class="directory-count" id="directoryCount"></p><div class="directory-scroll"><table class="directory-table"><thead><tr><th>Invitato</th><th>Tavolo / posto</th><th>Parola d’ordine</th></tr></thead><tbody id="directoryRows"></tbody></table></div></section><div class="tablet-actions"><div class="bar"><input aria-label="Cerca invitato" id="search" placeholder="Nome o cognome…" type="search"/><button id="searchButton" type="button">⌕ CERCA</button></div><div class="quick-tabs" id="filters"><button class="active" data-filter="hidden" type="button">DA SVELARE</button><button data-filter="revealed" type="button">SVELATI</button></div></div><section class="card"><h2>Controllo proiezione</h2><p class="muted">Prima della parola d’ordine prepara i posti. Al segnale premi «Inizia rivelazione», poi svela un invitato alla volta. Il proiettore si aggiorna da solo.</p><div class="row"><button id="start">INIZIA PROIEZIONE</button><button class="secondary" id="pause">SOSPENDI PROIEZIONE</button></div><div class="status" id="state"></div></section><p class="muted" id="count"></p><div class="grid" id="guests"></div><h2>Riepilogo tavoli</h2><div class="tables" id="tables"></div></section></main><script>const ROLE='hostess';
 const ENDPOINT='https://helhiadzfltxtfsehtoo.supabase.co/functions/v1/tableau-live';
 const APIKEY='sb_publishable_CfGUvVgO6QkaDzzTkuNFgw_NRt1Iyck';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let openEditors=new Set(),optimistic=new Map(),pending=new Set();let code=sessionStorage.getItem('mm_tableau_code')||'',data={guests:[],tables:[],revealed:[],started:false,revision:0},busy=false;
+let openEditors=new Set(),optimistic=new Map(),pending=new Set(),actionPending=null,loginPending=false;let code=sessionStorage.getItem('mm_tableau_code')||'',data={guests:[],tables:[],revealed:[],started:false,revision:0},busy=false;
 async function api(action='state',payload={}){const r=await fetch(ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json','apikey':APIKEY},body:JSON.stringify({code,action,role:ROLE,...payload}),cache:'no-store'});let v;try{v=await r.json()}catch{throw Error('Risposta non valida dal server')}if(!r.ok)throw Error(v.error||'Errore di connessione');return v;}
 function tname(id){return data.tables.find(t=>t.id===id)?.name||'Tavolo '+id;}
-async function refresh(){if(!code||busy||pending.size||document.hidden)return;busy=true;try{data=await api();$('login').classList.add('hidden');$('app').classList.remove('hidden');$('msg').textContent='';render()}catch(e){$('msg').textContent=e.message;if(/codice|tentativi|autorizzat/i.test(e.message)){code='';sessionStorage.removeItem('mm_tableau_code');$('login').classList.remove('hidden');$('app').classList.add('hidden');}}finally{busy=false}}
-$('access').onsubmit=async e=>{e.preventDefault();code=$('pass').value.trim();$('pass').value='';sessionStorage.setItem('mm_tableau_code',code);await refresh()};
+async function refresh(){if(!code||busy||pending.size||actionPending||document.hidden)return;busy=true;try{data=await api();$('login').classList.add('hidden');$('app').classList.remove('hidden');$('msg').textContent='';render()}catch(e){$('msg').textContent=e.message;if(/codice|tentativi|autorizzat/i.test(e.message)){code='';sessionStorage.removeItem('mm_tableau_code');$('login').classList.remove('hidden');$('app').classList.add('hidden');}}finally{busy=false}}
+$('access').onsubmit=async e=>{e.preventDefault();if(loginPending)return;const btn=$('access').querySelector('[type=submit]');loginPending=true;setButtonLoading(btn,true,'Accesso…');code=$('pass').value.trim();sessionStorage.setItem('mm_tableau_code',code);try{await refresh();if(!$('app').classList.contains('hidden'))$('pass').value=''}finally{loginPending=false;setButtonLoading(btn,false)}};
 $('eye').onclick=()=>{$('pass').type=$('pass').type==='password'?'text':'password'};
 function logout(){sessionStorage.removeItem('mm_tableau_code');code='';$('login').classList.remove('hidden');$('app').classList.add('hidden')}
 setInterval(refresh,2500);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});if(code)refresh();
@@ -61,80 +62,35 @@ $('directoryClose').onclick=()=>setDirectory(false);
 $('directorySearch').oninput=renderDirectory;
 function renderDirectory(){if(!directoryOpen)return;const q=$('directorySearch').value.trim().toLocaleLowerCase('it');const guests=[...(data.guests||[])].sort((a,b)=>a.full_name.localeCompare(b.full_name,'it'));const rows=guests.filter(g=>[g.full_name,tname(g.table_id),String(g.seat_no??''),'DA CREARE'].some(v=>String(v).toLocaleLowerCase('it').includes(q)));$('directoryCount').textContent=`${rows.length} di ${guests.length} invitati`;$('directoryRows').innerHTML=rows.map(g=>`<tr><td>${esc(g.full_name)}</td><td>${g.table_id==null?'Da assegnare':esc(tname(g.table_id))+' · '+esc(g.seat_no??'—')}</td><td>DA CREARE</td></tr>`).join('')||'<tr><td colspan="3" class="directory-empty">Nessun invitato trovato.</td></tr>';}
 
-async function change(action,payload={}){
- if(busy||pending.size)return;
- busy=true;
- try{data=await api(action,payload);render()}
- catch(e){alert('Operazione non completata: '+e.message)}
- finally{busy=false}
+function setButtonLoading(btn,on,label='Salvataggio…'){
+ if(!btn)return;
+ if(on){if(!btn.dataset.originalLabel)btn.dataset.originalLabel=btn.innerHTML;btn.innerHTML='<span class="loading-spinner" aria-hidden="true"></span> '+label;btn.setAttribute('aria-busy','true');btn.disabled=true;btn.classList.add('mm-saving')}
+ else{if(btn.dataset.originalLabel){btn.innerHTML=btn.dataset.originalLabel;delete btn.dataset.originalLabel}btn.removeAttribute('aria-busy');btn.classList.remove('mm-saving');btn.disabled=false}
+}
+async function change(action,payload={},button=null){
+ if(actionPending||pending.size)return;
+ actionPending=action;
+ if(button)setButtonLoading(button,true,action==='start'?'Avvio proiezione…':action==='pause'?'Sospensione…':'Salvataggio…');
+ render();
+ try{const result=await api(action,payload);data=result;render();return true}
+ catch(e){$('msg').textContent='Operazione non completata: '+e.message;return false}
+ finally{actionPending=null;if(button)setButtonLoading(button,false);render();refresh()}
 }
 async function revealInstant(id,isRevealed){
- // Risposta immediata al primo tocco; blocca solo questo invitato.
- if(pending.has(id)||busy||!data.started)return;
- pending.add(id);
- optimistic.set(id,!isRevealed);
- render();
- try{
-  const result=await api(isRevealed?'hide':'reveal',{guest:id});
-  data=result;
- }catch(e){
-  alert('Impossibile salvare la rivelazione. Riprova.\n'+e.message);
- }finally{
-  optimistic.delete(id);
-  pending.delete(id);
-  render();
-  // Aggiorna dal server dopo la conferma per evitare stati obsoleti.
-  refresh();
- }
+ if(pending.has(id)||actionPending||!data.started)return;
+ pending.add(id);optimistic.set(id,!isRevealed);render();
+ try{const result=await api(isRevealed?'hide':'reveal',{guest:id});data=result}
+ catch(e){$('msg').textContent='Impossibile salvare la rivelazione: '+e.message}
+ finally{optimistic.delete(id);pending.delete(id);render();refresh()}
 }
-$('start').onclick=()=>change('start');$('pause').onclick=()=>change('pause');
+$('start').onclick=()=>change('start',{},$('start'));$('pause').onclick=()=>change('pause',{},$('pause'));
 
-function render(){renderDirectory();const revealed=new Set(data.revealed||[]);for(const [id,val] of optimistic){if(val)revealed.add(id);else revealed.delete(id)}$('state').textContent=(data.started?'● Rivelazione attiva':'○ Proiezione in attesa')+' · '+revealed.size+' posti svelati · Sincronizzazione automatica';$('start').disabled=data.started;$('pause').disabled=!data.started;
+function render(){renderDirectory();const revealed=new Set(data.revealed||[]);for(const [id,val] of optimistic){if(val)revealed.add(id);else revealed.delete(id)}$('state').textContent=(data.started?'● Rivelazione attiva':'○ Proiezione in attesa')+' · '+revealed.size+' posti svelati · Sincronizzazione automatica';$('start').disabled=!!actionPending||data.started;$('pause').disabled=!!actionPending||!data.started;if(actionPending){const btn=$(actionPending==='start'?'start':'pause');if(btn&&!btn.classList.contains('mm-saving'))setButtonLoading(btn,true,actionPending==='start'?'Avvio proiezione…':'Sospensione…')}
  const all=data.guests||[];const sorted=all.filter(g=>g.full_name.toLocaleLowerCase('it').includes(search)&&(filter==='hidden'?!revealed.has(g.id):filter==='revealed'?revealed.has(g.id):true)); $('count').textContent=`${all.length} invitati · ${all.filter(g=>g.table_id!==null).length} assegnati · ${revealed.size} svelati`;
- $('guests').innerHTML=sorted.map(g=>`<article class="guest"><div class="row"><strong class="grow guest-name">${esc(g.full_name)}</strong><span class="badge ${revealed.has(g.id)?'badge-green':g.table_id===null?'badge-red':'badge-wait'}">${pending.has(g.id)?'⏳ Salvataggio…':revealed.has(g.id)?'✓ Svelato':g.table_id===null?'● Da assegnare':'Da svelare'}</span></div><div class="guest-main"><span class="muted">${g.table_id===null?'Posto non assegnato':esc(tname(g.table_id))+' · Posto '+g.seat_no}</span><button class="primary-reveal ${revealed.has(g.id)?'done':''}" ${!data.started||g.table_id===null||pending.has(g.id)?'disabled':''} aria-busy="${pending.has(g.id)}" data-reveal="${g.id}">${pending.has(g.id)?'<span class="loading-spinner" aria-hidden="true"></span> Salvataggio…':revealed.has(g.id)?'Nascondi':'✨ SVELA POSTO'}</button></div><div class="access-word">Parola d’ordine per l’invitato: <strong>DA CREARE</strong></div><details data-editor="${g.id}" ${openEditors.has(g.id)?'open':''}><summary>Modifica tavolo o posto</summary><div class="controls"><select data-table="${g.id}" aria-label="Tavolo per ${esc(g.full_name)}"><option value="">Non assegnato</option>${data.tables.map(t=>`<option value="${t.id}" ${g.table_id===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select><select data-seat="${g.id}" aria-label="Posto"><option value="">Posto</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${g.seat_no===i+1?'selected':''}>Posto ${i+1}</option>`).join('')}</select><button class="secondary" data-move="${g.id}">Salva</button></div></details></article>`).join('')||'<p>Nessun invitato trovato.</p>';
+ $('guests').innerHTML=sorted.map(g=>`<article class="guest"><div class="row"><strong class="grow guest-name">${esc(g.full_name)}</strong><span class="badge ${revealed.has(g.id)?'badge-green':g.table_id===null?'badge-red':'badge-wait'}">${pending.has(g.id)?'⏳ Salvataggio…':revealed.has(g.id)?'✓ Svelato':g.table_id===null?'● Da assegnare':'Da svelare'}</span></div><div class="guest-main"><span class="muted">${g.table_id===null?'Posto non assegnato':esc(tname(g.table_id))+' · Posto '+g.seat_no}</span><button class="primary-reveal ${revealed.has(g.id)?'done':''}" ${!data.started||g.table_id===null||pending.has(g.id)||!!actionPending?'disabled':''} aria-busy="${pending.has(g.id)}" data-reveal="${g.id}">${pending.has(g.id)?'<span class="loading-spinner" aria-hidden="true"></span> Salvataggio…':revealed.has(g.id)?'Nascondi':'✨ SVELA POSTO'}</button></div><div class="access-word">Parola d’ordine per l’invitato: <strong>DA CREARE</strong></div><details data-editor="${g.id}" ${openEditors.has(g.id)?'open':''}><summary>Modifica tavolo o posto</summary><div class="controls"><select data-table="${g.id}" aria-label="Tavolo per ${esc(g.full_name)}"><option value="">Non assegnato</option>${data.tables.map(t=>`<option value="${t.id}" ${g.table_id===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select><select data-seat="${g.id}" aria-label="Posto"><option value="">Posto</option>${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${g.seat_no===i+1?'selected':''}>Posto ${i+1}</option>`).join('')}</select><button class="secondary" data-move="${g.id}">Salva</button></div></details></article>`).join('')||'<p>Nessun invitato trovato.</p>';
  $('tables').innerHTML=data.tables.map(t=>{const ppl=all.filter(g=>g.table_id===t.id).sort((a,b)=>a.seat_no-b.seat_no);return `<div class="table"><h2>${esc(t.name)}</h2><p class="muted">${ppl.length}/10 posti · ${ppl.filter(g=>revealed.has(g.id)).length} svelati</p><ol>${ppl.map(g=>`<li>${esc(g.full_name)} · ${g.seat_no} ${revealed.has(g.id)?'✨':'🔒'}</li>`).join('')}</ol></div>`}).join('');
- document.querySelectorAll('[data-move]').forEach(el=>el.onclick=()=>{const id=el.dataset.move;const t=document.querySelector(`[data-table="${id}"]`).value;const s=document.querySelector(`[data-seat="${id}"]`).value;if(Boolean(t)!==Boolean(s)){alert('Seleziona sia il tavolo sia il posto, oppure lascia entrambi vuoti.');return}const other=all.find(g=>g.id!==id&&String(g.table_id)===t&&String(g.seat_no)===s&&t);if(other&&!confirm(`Il posto è occupato da ${other.full_name}. Vuoi scambiare i due posti?`))return;change('move',{guest:id,table:t?Number(t):null,seat:s?Number(s):null})});
+ document.querySelectorAll('[data-move]').forEach(el=>el.onclick=()=>{const id=el.dataset.move;const t=document.querySelector(`[data-table="${id}"]`).value;const s=document.querySelector(`[data-seat="${id}"]`).value;if(Boolean(t)!==Boolean(s)){alert('Seleziona sia il tavolo sia il posto, oppure lascia entrambi vuoti.');return}const other=all.find(g=>g.id!==id&&String(g.table_id)===t&&String(g.seat_no)===s&&t);if(other&&!confirm(`Il posto è occupato da ${other.full_name}. Vuoi scambiare i due posti?`))return;change('move',{guest:id,table:t?Number(t):null,seat:s?Number(s):null},el)});
  document.querySelectorAll('[data-reveal]').forEach(el=>el.onclick=()=>revealInstant(el.dataset.reveal,revealed.has(el.dataset.reveal)));document.querySelectorAll('details[data-editor] > summary').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();const details=el.parentElement;const id=details.dataset.editor;if(openEditors.has(id)){openEditors.delete(id);details.open=false}else{openEditors.add(id);details.open=true}}));
 }
-</script><style id="mm-action-feedback-style">
-.mm-action-pending{position:relative!important;cursor:progress!important;filter:brightness(.94);}
-.mm-action-pending::after{content:"";display:inline-block;width:13px;height:13px;margin-left:9px;vertical-align:-2px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:mm-action-spin .7s linear infinite}
-@keyframes mm-action-spin{to{transform:rotate(360deg)}}
-.mm-action-tap{filter:brightness(.89);transition:filter .12s}
-#mm-action-status{position:fixed;z-index:2147483647;bottom:max(16px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#172436;color:#fff;padding:10px 17px;border-radius:24px;box-shadow:0 7px 25px #0005;font:600 13px system-ui,sans-serif;pointer-events:none;display:none;align-items:center;gap:9px;white-space:nowrap;max-width:90vw}
-#mm-action-status.mm-show{display:flex}
-#mm-action-status .mm-wheel{height:15px;width:15px;border:2px solid #fff9;border-right-color:transparent;border-radius:50%;animation:mm-action-spin .7s linear infinite}
-@media(prefers-reduced-motion:reduce){.mm-action-pending::after,#mm-action-status .mm-wheel{animation-duration:1.8s}}
-</style>
-<script id="mm-action-feedback-script">
-(()=>{
- const nativeFetch=window.fetch.bind(window);
- let current=null,serial=0;
- const status=document.createElement('div');status.id='mm-action-status';status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.innerHTML='<span class="mm-wheel" aria-hidden="true"></span><span>Caricamento…</span>';
- const mount=()=>{if(!status.isConnected)document.body.appendChild(status)};
- function clear(a){if(!a||a.done)return;a.done=true;clearTimeout(a.delay);clearTimeout(a.limit);clearTimeout(a.settle);if(a.btn?.isConnected){a.btn.classList.remove('mm-action-pending','mm-action-tap');a.btn.removeAttribute('data-mm-loading')}if(current===a){current=null;status.classList.remove('mm-show')}}
- function start(btn){if(!btn||btn.disabled||btn.getAttribute('aria-disabled')==='true')return;
-  if(current&&current.btn===btn&&!current.done)return;
-  const a={id:++serial,btn,pending:0,done:false,started:performance.now()};current=a;mount();btn.classList.add('mm-action-tap');
-  a.delay=setTimeout(()=>{if(a.done)return;btn.classList.add('mm-action-pending');btn.dataset.mmLoading='true';status.classList.add('mm-show')},220);
-  a.limit=setTimeout(()=>{if(!a.done){clear(a);status.querySelector('span:last-child').textContent='Connessione lenta: verifica il risultato';status.classList.add('mm-show');setTimeout(()=>{status.classList.remove('mm-show');status.querySelector('span:last-child').textContent='Caricamento…'},2500)}},18000);
-  // Lascia una finestra breve per l'avvio di operazioni asincrone.
-  a.settle=setTimeout(()=>{if(a.pending===0)clear(a)},900);
- }
- document.addEventListener('click',e=>{const btn=e.target.closest('button,input[type="submit"],input[type="button"],a[href]');if(!btn||btn.disabled)return;
-  // Link e azioni istantanee hanno solo conferma visiva, non un caricamento fittizio.
-  if(btn.matches('a[href]')){btn.classList.add('mm-action-tap');setTimeout(()=>btn.classList.remove('mm-action-tap'),250);return}
-  start(btn);
- },true);
- document.addEventListener('submit',e=>{const btn=e.submitter||e.target.querySelector('button[type="submit"],input[type="submit"]');if(btn&&(!current||current.btn!==btn))start(btn)},true);
- window.fetch=function(...args){const a=current;
-  // Associa alla pressione solo le richieste iniziate subito dopo il tocco.
-  const tracked=a&&!a.done&&performance.now()-a.started<1800;
-  if(tracked){a.pending++;clearTimeout(a.settle)}
-  let promise;try{promise=nativeFetch(...args)}catch(err){if(tracked&&--a.pending===0)clear(a);throw err}
-  if(tracked)return promise.finally(()=>{a.pending--;if(a.pending===0){a.settle=setTimeout(()=>clear(a),320)}});
-  return promise;
- };
-})();
 </script>
 </body></html>
