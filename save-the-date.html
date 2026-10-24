@@ -33,37 +33,88 @@ main{position:relative;max-width:1080px;margin:auto;padding:clamp(30px,6vw,76px)
 .hint{margin:13px 0 0;font-size:11px;color:var(--muted)}.save{margin-top:36px;font-size:11px;letter-spacing:.28em;color:var(--rose);font-weight:700}.date{font:clamp(45px,9vw,86px)/1.1 Italiana,Georgia,serif;margin:10px 0 8px}.message{color:#796466;margin:0 0 22px}.calendar{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:12px 23px;border:1px solid var(--rose);border-radius:999px;background:var(--rose);color:#fff;text-decoration:none;font-weight:600;font-size:12px;letter-spacing:.03em;transition:background .2s}.calendar:hover{background:#7c5156}.foot{margin:43px 0 0;font-size:11px;letter-spacing:.04em;color:#9d8985}.foot strong{font-weight:600;color:var(--rose)}
 @media(max-width:600px){main{padding:32px 12px 36px}.monogram{font-size:36px}.kicker{margin-top:20px}.names{margin:12px 0 13px}.intro{margin-bottom:20px}.film-wrap{padding:4px;border-radius:6px}.play-circle{width:60px;height:60px}.play svg{width:23px;height:23px}.save{margin-top:31px}.foot{margin-top:35px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Save the Date 2.0: essenziale, nomi su una riga anche da mobile */
+main{padding-top:clamp(22px,4vw,48px)}.line{margin:13px auto}.kicker{margin:14px 0 4px}.names{font-size:clamp(26px,5.8vw,68px);white-space:nowrap;letter-spacing:-.025em;margin:9px auto 21px}.hint:empty{display:none}.hint{margin:10px 0 0}.date{margin:28px 0 4px}.message{margin:0 0 20px}.calendar{margin-bottom:8px}
+@media(max-width:600px){main{padding:20px 10px 32px}.monogram{font-size:30px}.line{margin:10px auto}.kicker{margin:11px 0 2px}.names{font-size:clamp(25px,6.5vw,38px);letter-spacing:-.045em;margin:8px auto 18px}.date{font-size:clamp(44px,10vw,62px);margin-top:25px}.film-wrap{padding:3px}}
+@media(max-width:350px){.names{font-size:6.1vw}}
 </style>
 </head>
 <body>
 <main>
 <div class="monogram" aria-label="M e M">M | M</div>
 <div class="line"></div>
-<p class="kicker">Un piccolo annuncio, una grande emozione</p>
+<p class="kicker">SAVE THE DATE</p>
 <h1 class="names">Mariangela &amp; Maurizio</h1>
-<p class="intro">Ci sono storie che meritano di essere raccontate.<br>Questa è la nostra. ♡</p>
+
 <section class="film-wrap" aria-label="Video Save the Date">
  <div class="film" id="film">
-  <video id="video" controls playsinline preload="none" poster="save-the-date-cover.jpg" aria-label="Il nostro Save the Date di 40 secondi">
+  <video id="video" controls playsinline webkit-playsinline preload="metadata" poster="save-the-date-cover.jpg" aria-label="Il nostro Save the Date di 40 secondi">
    <source src="save-the-date.mp4" type="video/mp4">
    Il tuo browser non supporta la riproduzione video. <a href="save-the-date.mp4">Apri il video MP4</a>.
   </video>
   <div class="poster" id="poster"><img src="save-the-date-cover.jpg" alt="Mariangela e Maurizio, Save the Date" loading="eager"></div>
   <button class="play" id="play" type="button" aria-label="Riproduci il Save the Date con audio">
    <span class="play-circle"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3.9c0-.8.9-1.3 1.6-.9l12 7.9a1.3 1.3 0 0 1 0 2.2l-12 7.9c-.7.4-1.6-.1-1.6-.9V3.9z"/></svg></span>
-   <span>Guarda il nostro video · 40 secondi</span>
+   <span>Guarda il video</span>
   </button>
  </div>
 </section>
-<p class="hint">Premi Play per guardare il video con audio · Per lo schermo intero usa i controlli del video</p>
-<p class="save">SAVE THE DATE</p>
+<p class="hint" id="videoHint" aria-live="polite"></p>
+
 <div class="date">06 · 08 · 2027</div>
-<p class="message">Ci sposiamo!<br>L'invito ufficiale arriverà prossimamente.</p>
+<p class="message">Ci sposiamo! ♡</p>
 <a class="calendar" href="matrimonio-mariangela-maurizio.ics" download aria-label="Aggiungi la data del matrimonio al calendario">♡ &nbsp; Aggiungi al calendario</a>
-<p class="foot">Con amore, <strong>Mariangela &amp; Maurizio</strong></p>
+
 </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
 <script>
-(()=>{const v=document.getElementById('video'),film=document.getElementById('film'),b=document.getElementById('play');b.addEventListener('click',async()=>{film.classList.add('started');v.preload='auto';v.load();try{await v.play()}catch(e){v.controls=true;v.style.visibility='visible';}});v.addEventListener('error',()=>{if(v.error){document.querySelector('.hint').textContent='Il video non è disponibile: controlla che save-the-date.mp4 sia nella stessa cartella di questa pagina.'}})})();
+(()=>{
+ const v=document.getElementById('video');
+ const film=document.getElementById('film');
+ const b=document.getElementById('play');
+ const hint=document.getElementById('videoHint');
+ let recorded=false;
+ async function countPlay(){
+  if(recorded || sessionStorage.getItem('mm_save_date_played'))return;
+  recorded=true;
+  try{
+   const client=window.supabase?.createClient('https://helhiadzfltxtfsehtoo.supabase.co','sb_publishable_CfGUvVgO6QkaDzzTkuNFgw_NRt1Iyck',{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+   if(!client)throw new Error('Libreria statistiche non disponibile');
+   const {error}=await client.rpc('mm_record_save_date_play');
+   if(error)throw error;
+   sessionStorage.setItem('mm_save_date_played','1');
+  }catch(e){recorded=false;console.warn('Statistiche non registrate:',e.message)}
+ }
+ function fullscreen(){
+  // Su Safari iOS il video usa la propria modalità fullscreen nativa.
+  if(typeof v.webkitEnterFullscreen==='function'){
+   try{v.webkitEnterFullscreen();return}catch(e){}
+  }
+  if(typeof v.requestFullscreen==='function'){
+   try{const result=v.requestFullscreen();if(result?.catch)result.catch(()=>{});}catch(e){}
+  }
+ }
+ async function start(){
+  film.classList.add('started');v.preload='auto';v.controls=true;
+  v.muted=false;
+  // La richiesta avviene nel gesto dell'utente, non dopo await.
+  const playback=v.play();
+  fullscreen();
+  try{await playback}catch(e){hint.textContent='Tocca Play nei controlli del video per iniziare.'}
+ }
+ b.addEventListener('click',start);
+ v.addEventListener('play',()=>{void countPlay()});
+ v.addEventListener('ended',()=>{
+  if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
+  if(typeof v.webkitExitFullscreen==='function')try{v.webkitExitFullscreen()}catch(e){}
+  v.controls=true;
+  hint.textContent='♡';
+ });
+ v.addEventListener('error',()=>{
+  if(v.error)hint.textContent='Video non disponibile: verifica il percorso di save-the-date.mp4.';
+ });
+})();
 </script>
 </body>
 </html>
