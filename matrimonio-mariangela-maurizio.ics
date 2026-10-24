@@ -1,0 +1,14 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Mariangela e Maurizio//Save the Date//IT
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:matrimonio-20270806@mariangelaemaurizio.it
+DTSTAMP:20261024T090000Z
+DTSTART;VALUE=DATE:20270806
+DTEND;VALUE=DATE:20270807
+SUMMARY:Matrimonio Mariangela e Maurizio
+DESCRIPTION:Save the Date! L'invito ufficiale arrivera prossimamente.
+END:VEVENT
+END:VCALENDAR
