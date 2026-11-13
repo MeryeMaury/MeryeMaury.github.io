@@ -71,6 +71,11 @@ const knownMale=new Set('achille adriano agostino aldo alfio amedeo amilcare arm
 const knownFemale=new Set('ada adelaide adriana agata agnese alba alberta alessia alfonsina amalia amanda ambra anastasia angela angelica annalisa annamaria arianna assunta barbara benedetta bianca bruna carmelina carmela carolina cassandra celeste cinzia clarissa concetta costanza daniela debora deborah diana diletta domenica donatella edda edvige emilia emma erica erika ester eva evelina fabiana fatima filomena fiorella flora floriana fortunata franca gabriella gemma geraldina gilda ginevra gloria grazia ida ines irene irma isabella ivana katia lara letizia lidia linda lisa lorella luana ludovica luisa maddalena manuela marcella marina melania melissa michela milena mirella monica nadia natalia nicoletta nunzia olga ornella patrizia perla pia pina raffaella ramona renata romina rosalia rosanna rossella sabrina sandra santina sara savina selene sonia susanna tiziana valeria vanessa viola viviana wanda maria giulia francesca chiara martina sara elena alessia valentina federica roberta elisa silvia ilaria alessandra marta laura beatrice serena giada caterina lucia eleonora paola cristina mariangela anna rosa antonella simona giovanna carla emanuela gabriella sofia aurora alice vittoria camilla giorgia gaia noemi elisabetta veronica teresa rita claudia margherita'.split(' '));
 function guessGender(full){const first=clean(full).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('it').split(/[\s'-]+/)[0];if(knownMale.has(first))return 'M';if(knownFemale.has(first))return 'F';return null;}
 function mget(id){return meta[id]||{group_name:'',rsvp_status:'pending'};}
+const childKey='mm_tableau_children_v1';
+let childIds={};try{childIds=JSON.parse(localStorage.getItem(childKey)||'{}')||{}}catch(e){}
+function isChild(g){return !!childIds[g.id]}
+function dietary(g){const m=mget(g.id),out=[];if(m.gluten_free)out.push('Senza glutine');if(m.lactose_free)out.push('Senza lattosio');if(m.vegetarian)out.push('Vegetariano');if(m.vegan)out.push('Vegano');if(clean(m.other_dietary_needs))out.push(clean(m.other_dietary_needs));return out}
+
 function pushUndo(g){undoStack.push({id:g.id,table_id:g.table_id,seat_no:g.seat_no});if(undoStack.length>30)undoStack.shift();$('undo').disabled=false;}
 function toast(s){$('saveStatus').textContent=s;}
 async function requireAdmin(){const {data:{user}}=await supabase.auth.getUser();if(!user)return false;const {data,error}=await supabase.rpc('mm_is_admin');return !error&&data===true;}
@@ -92,7 +97,7 @@ async function load(){
  ]);
  meta={};
  if(!rv.error)(rv.data||[]).forEach(v=>{
-  meta[v.invitee_id]={...(meta[v.invitee_id]||{}),rsvp_status:!v.has_response?'pending':v.attending===true?'confirmed':'declined'};
+  meta[v.invitee_id]={...(meta[v.invitee_id]||{}),rsvp_status:!v.has_response?'pending':v.attending===true?'confirmed':'declined',vegetarian:v.vegetarian,vegan:v.vegan,gluten_free:v.gluten_free,lactose_free:v.lactose_free,other_dietary_needs:v.other_dietary_needs||''};
  });
  if(!gr.error)(gr.data||[]).forEach(v=>{
   meta[v.invitee_id]={...(meta[v.invitee_id]||{}),group_name:v.group_code||''};
@@ -160,12 +165,12 @@ function renderGuests(){
    ${m.group_name?`<span class="mm-group">Gruppo: ${html(m.group_name)}</span>`:''}<small class="mm-status ${status}">${label}</small></span>
    <div class="guest-meta"><select aria-label="Genere di ${html(g.full_name)}" data-gender="${html(g.id)}">
     <option value="" ${!g.gender?'selected':''}>?</option><option value="F" ${g.gender==='F'?'selected':''}>♀</option><option value="M" ${g.gender==='M'?'selected':''}>♂</option></select>
-    <span class="mm-status" style="grid-column:span 2">RSVP in sola lettura · gruppo dal sistema inviti</span></div>
+    <label style="grid-column:span 2;font-size:11px;display:flex;align-items:center;gap:7px"><input type="checkbox" data-child="${html(g.id)}" ${isChild(g)?'checked':''} style="width:auto;min-height:auto"> Bambino/a (etichetta PDF)</label><span class="mm-status" style="grid-column:span 2">RSVP in sola lettura · gruppo dal sistema inviti</span></div>
    ${g.table_id!=null?`<button type="button" class="mm-remove-seat" title="Rimuovi dal tavolo" data-unassign="${html(g.id)}">Rimuovi</button>`:''}
   </div>`;
  }).join(''):'<div class="empty">Nessun invitato trovato</div>';
  document.querySelectorAll('[data-guest]').forEach(el=>el.ondragstart=e=>{dragId=el.dataset.guest;e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.effectAllowed='move';});
- document.querySelectorAll('[data-gender]').forEach(el=>el.onchange=()=>updateGuest(el.dataset.gender,{gender:el.value||null}));
+ document.querySelectorAll('[data-gender]').forEach(el=>el.onchange=()=>updateGuest(el.dataset.gender,{gender:el.value||null}));document.querySelectorAll('[data-child]').forEach(el=>el.onchange=()=>{if(el.checked)childIds[el.dataset.child]=true;else delete childIds[el.dataset.child];localStorage.setItem(childKey,JSON.stringify(childIds));toast('Etichetta bambino/a salvata su questo browser ✓');});
  document.querySelectorAll('[data-unassign]').forEach(el=>el.onclick=()=>{
   const g=guests.find(x=>x.id===el.dataset.unassign);
   if(g&&confirm(`Rimuovere ${g.full_name} dal tavolo? L’invitato resterà nell’elenco.`))assign(g.id,null);
@@ -191,31 +196,31 @@ $('exportPrint').onclick=()=>{
  @page{size:A4 portrait;margin:0}
  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
  html,body{margin:0;padding:0;color:#684741;background:white;font-family:Georgia,serif}
- .page{width:210mm;height:297mm;padding:13mm 15mm;break-after:page;page-break-after:always;position:relative;overflow:hidden;background:#fffaf6}
+ .page{width:210mm;height:297mm;padding:8mm 12mm;break-after:page;page-break-after:always;position:relative;overflow:hidden;background:#fffaf6}
  .page:last-child{break-after:auto;page-break-after:auto}
- .mark{text-align:center;font:34pt Georgia,serif;color:#8f5c56}
+ .mark{text-align:center;font:25pt Georgia,serif;color:#8f5c56}
  .date{text-align:center;font:9pt Arial,sans-serif;letter-spacing:3px}
- .rule{height:1px;background:#d8bcb3;margin:6mm 0}
- .heading{text-align:center;font:28pt Georgia,serif;margin:8mm 0 4mm;overflow-wrap:anywhere}
+ .rule{height:1px;background:#d8bcb3;margin:3mm 0}
+ .heading{text-align:center;font:21pt Georgia,serif;margin:4mm 0 2mm;overflow-wrap:anywhere}
  .note{text-align:center;font:9pt Arial,sans-serif;color:#8a7770}
  .footer{position:absolute;bottom:10mm;left:0;right:0;text-align:center;font:9pt Arial,sans-serif;color:#98786f}
- .diagram{width:168mm;height:150mm;position:relative;margin:7mm auto 1mm;overflow:visible}
- .diagram-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:65mm;height:65mm;border-radius:50%;background:radial-gradient(circle,#fffdf9,#ead9d0);border:2px solid #c8a69c;box-shadow:inset 0 0 0 3mm #fffaf6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7mm;color:#825951;font:17pt Georgia,serif;overflow-wrap:anywhere}
+ .diagram{width:160mm;height:126mm;position:relative;margin:3mm auto 1mm;overflow:visible}
+ .diagram-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:53mm;height:53mm;border-radius:50%;background:radial-gradient(circle,#fffdf9,#ead9d0);border:2px solid #c8a69c;box-shadow:inset 0 0 0 3mm #fffaf6;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:7mm;color:#825951;font:14pt Georgia,serif;overflow-wrap:anywhere}
  .diagram-flower{font-size:24pt;color:#c79286;margin-bottom:3mm}
- .diagram-seat{position:absolute;transform:translate(-50%,-50%);width:34mm;min-height:23mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1mm}
- .diagram-avatar{width:11mm;height:11mm;display:grid;place-items:center;border-radius:50%;font:19pt Arial,sans-serif;background:#eaf0f7;border:1px solid #dbe5ec}
+ .diagram-seat{position:absolute;transform:translate(-50%,-50%);width:33mm;min-height:19mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1mm}
+ .diagram-avatar{width:9mm;height:9mm;display:grid;place-items:center;border-radius:50%;font:15pt Arial,sans-serif;background:#eaf0f7;border:1px solid #dbe5ec}
  .diagram-avatar.female{background:#f8e9eb;border-color:#f0d7dc}
  .diagram-avatar.unspecified{background:#f0edeb;border-color:#e5ded9}
  .diagram-avatar.confirmed{outline:2px solid #15a64c;outline-offset:1px}
  .diagram-avatar.pending{outline:2px solid #e6a21e;outline-offset:1px}
  .diagram-avatar.declined{outline:2px solid #d94755;outline-offset:1px}
- .diagram-name{font:600 8pt/1.25 Arial,sans-serif;color:#4d3d3a;overflow-wrap:anywhere;max-width:100%}
- .diagram-empty{font:9pt Arial,sans-serif;color:#aa9289;border:1px dashed #d8bdb4;border-radius:50%;width:11mm;height:11mm;display:grid;place-items:center;background:#fffaf6}
- .diagram-summary{border-top:1px solid #eadbd4;padding-top:4mm;margin:1mm 0 0;text-align:center;font:9pt Arial,sans-serif;color:#866b64}
- .legend{display:flex;justify-content:center;gap:6mm;margin-top:3mm;font:8pt Arial,sans-serif;color:#806f68}
+ .diagram-name{font:600 7pt/1.2 Arial,sans-serif;color:#4d3d3a;overflow-wrap:anywhere;max-width:100%}
+ .diagram-diet{font:6pt/1.15 Arial,sans-serif;color:#92534a;max-width:100%;overflow-wrap:anywhere}.diagram-child{font:700 6pt Arial,sans-serif;color:#58728a}.diet-note{display:block;font:6.5pt/1.2 Arial,sans-serif;color:#92534a;margin-top:1mm;overflow-wrap:anywhere}.diagram-empty{font:9pt Arial,sans-serif;color:#aa9289;border:1px dashed #d8bdb4;border-radius:50%;width:9mm;height:9mm;display:grid;place-items:center;background:#fffaf6}
+ .diagram-summary{border-top:1px solid #eadbd4;padding-top:2mm;margin:1mm 0 0;text-align:center;font:9pt Arial,sans-serif;color:#866b64}
+ .legend{display:flex;justify-content:center;gap:6mm;margin-top:2mm;font:7pt Arial,sans-serif;color:#806f68}
  .legend b{font-size:11pt}.legend .ok{color:#15a64c}.legend .wait{color:#e6a21e}.legend .no{color:#d94755}
- .diagram-list{margin:5mm 0 0;display:grid;grid-template-columns:1fr 1fr;gap:2mm 6mm;font:9pt Arial,sans-serif}
- .diagram-list-item{padding:2mm;border-bottom:1px solid #eee2dc;overflow-wrap:anywhere}
+ .diagram-list{margin:3mm 0 0;display:grid;grid-template-columns:1fr 1fr;gap:1mm 4mm;font:7.5pt Arial,sans-serif}
+ .diagram-list-item{padding:1.5mm;border-bottom:1px solid #eee2dc;overflow-wrap:anywhere}
  .diagram-list-item strong{color:#a8786d;margin-right:2mm}
  @media screen{body{background:#eee}.page{margin:10mm auto;box-shadow:0 4px 25px #0002}}
  `;
@@ -225,12 +230,12 @@ $('exportPrint').onclick=()=>{
   const seat=Array.from({length:10},(_,i)=>ppl.find(g=>g.seat_no===i+1));
   const seats=seat.map((g,i)=>{
    const angle=2*Math.PI*i/10-Math.PI/2;
-   const x=50+40*Math.cos(angle),y=50+39*Math.sin(angle);
+   const x=50+41*Math.cos(angle),y=50+39*Math.sin(angle);
    const status=g?(mget(g.id).rsvp_status||'pending'):'pending';
    const gender=g?.gender==='F'?'female':g?.gender==='M'?'male':'unspecified';
-   return `<div class="diagram-seat" style="left:${x}%;top:${y}%">${g?`<span class="diagram-avatar ${gender} ${status}">${avatar(g)}</span><span class="diagram-name">${html(g.full_name)}</span>`:`<span class="diagram-empty">${i+1}</span>`}</div>`;
+   return `<div class="diagram-seat" style="left:${x}%;top:${y}%">${g?`<span class="diagram-avatar ${gender} ${status}">${avatar(g)}</span><span class="diagram-name">${html(g.full_name)}</span>${isChild(g)?'<span class="diagram-child">Bambino/a</span>':''}${dietary(g).length?`<span class="diagram-diet">${html(dietary(g).join(' · '))}</span>`:''}`:`<span class="diagram-empty">${i+1}</span>`}</div>`;
   }).join('');
-  const details=seat.map((g,i)=>`<div class="diagram-list-item"><strong>${String(i+1).padStart(2,'0')}</strong> ${html(g?.full_name||'Posto libero')}${g&&mget(g.id).rsvp_status==='declined'?' · Assente':''}</div>`).join('');
+  const details=seat.map((g,i)=>`<div class="diagram-list-item"><strong>${String(i+1).padStart(2,'0')}</strong> ${html(g?.full_name||'Posto libero')}${g&&mget(g.id).rsvp_status==='declined'?' · Assente':''}${g&&isChild(g)?' · Bambino/a':''}${g&&dietary(g).length?`<span class="diet-note">⚠ ${html(dietary(g).join(' · '))}</span>`:''}</div>`).join('');
   pages+=`<section class="page"><div class="mark">M | M</div><div class="date">06 AGOSTO 2027</div><div class="rule"></div><div class="heading">${html(t.name)}</div><div class="note">Il nostro tableau · disposizione grafica dei posti</div><div class="diagram"><div class="diagram-center"><span class="diagram-flower">✦</span><span>${html(t.name)}</span></div>${seats}</div><div class="diagram-summary">${ppl.length} invitati assegnati · ${10-ppl.length} posti liberi</div><div class="legend"><span><b class="ok">●</b> Confermato</span><span><b class="wait">●</b> In attesa</span><span><b class="no">●</b> Assente</span></div><div class="diagram-list">${details}</div><div class="footer">Mariangela & Maurizio</div></section>`;
 
  }
