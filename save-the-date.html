@@ -87,28 +87,16 @@ main{padding-top:clamp(22px,4vw,48px)}.line{margin:13px auto}.kicker{margin:14px
    sessionStorage.setItem('mm_save_date_played','1');
   }catch(e){recorded=false;console.warn('Statistiche non registrate:',e.message)}
  }
- function fullscreen(){
-  // Su Safari iOS il video usa la propria modalità fullscreen nativa.
-  if(typeof v.webkitEnterFullscreen==='function'){
-   try{v.webkitEnterFullscreen();return}catch(e){}
-  }
-  if(typeof v.requestFullscreen==='function'){
-   try{const result=v.requestFullscreen();if(result?.catch)result.catch(()=>{});}catch(e){}
-  }
- }
  async function start(){
   film.classList.add('started');v.preload='auto';v.controls=true;
   v.muted=false;
   // La richiesta avviene nel gesto dell'utente, non dopo await.
   const playback=v.play();
-  fullscreen();
   try{await playback}catch(e){hint.textContent='Tocca Play nei controlli del video per iniziare.'}
  }
  b.addEventListener('click',start);
  v.addEventListener('play',()=>{void countPlay()});
  v.addEventListener('ended',()=>{
-  if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});
-  if(typeof v.webkitExitFullscreen==='function')try{v.webkitExitFullscreen()}catch(e){}
   v.controls=true;
   hint.textContent='♡';
  });
